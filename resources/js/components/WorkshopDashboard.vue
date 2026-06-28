@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import ClientPanel from './ClientPanel.vue';
+import ProviderPanel from './ProviderPanel.vue';
 import VehiclePanel from './VehiclePanel.vue';
 
 const fallbackDashboard = {
@@ -59,6 +60,7 @@ onMounted(loadDashboard);
                     <a class="block rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950" href="#dashboard">Dashboard</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#clientes">Clientes</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#veiculos">Veiculos</a>
+                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#fornecedores">Fornecedores</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#modulos">Modulos</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#ordens">Ordens de servico</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#relatorios">Relatorios</a>
@@ -151,6 +153,8 @@ onMounted(loadDashboard);
                 <ClientPanel class="mt-8" @changed="loadDashboard" />
 
                 <VehiclePanel class="mt-8" @changed="loadDashboard" />
+
+                <ProviderPanel class="mt-8" @changed="loadDashboard" />
 
                 <section id="ordens" class="mt-8 rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
                     <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
