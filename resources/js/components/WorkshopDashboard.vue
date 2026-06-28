@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import ClientPanel from './ClientPanel.vue';
 import OrderPanel from './OrderPanel.vue';
 import ProviderPanel from './ProviderPanel.vue';
@@ -19,11 +19,37 @@ const fallbackDashboard = {
     },
 };
 
+const logoUrl = '/images/betini-logo.png';
 const dashboard = ref(fallbackDashboard);
 const isLoading = ref(true);
 const loadError = ref(null);
+const isSidebarCollapsed = ref(window.localStorage.getItem('betini-sidebar') === 'collapsed');
+const activeModule = ref(window.location.hash.replace('#', '') || 'dashboard');
+const isSettingsOpen = ref(false);
+
+const modules = [
+    { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', eyebrow: 'Visao geral', title: 'Dashboard' },
+    { key: 'clientes', label: 'Clientes', icon: 'person', eyebrow: 'Cadastros', title: 'Clientes da oficina', component: ClientPanel },
+    { key: 'veiculos', label: 'Veiculos', icon: 'car', eyebrow: 'Cadastros', title: 'Veiculos atendidos', component: VehiclePanel },
+    { key: 'fornecedores', label: 'Fornecedores', icon: 'truck', eyebrow: 'Suprimentos', title: 'Fornecedores e parceiros', component: ProviderPanel },
+    { key: 'produtos', label: 'Produtos', icon: 'box', eyebrow: 'Estoque', title: 'Produtos e pecas', component: ProductPanel },
+    { key: 'servicos', label: 'Servicos', icon: 'tool', eyebrow: 'Catalogo', title: 'Servicos da oficina', component: ServicePanel },
+    { key: 'ordens', label: 'Ordens', icon: 'clipboard', eyebrow: 'Operacao', title: 'Ordens de servico', component: OrderPanel },
+];
 
 const statusRows = computed(() => Object.entries(dashboard.value.ordersByStatus ?? {}));
+const activeMeta = computed(() => modules.find((module) => module.key === activeModule.value) ?? modules[0]);
+const activeComponent = computed(() => activeMeta.value.component ?? null);
+
+function setActiveModule(key) {
+    activeModule.value = key;
+    isSettingsOpen.value = false;
+    window.history.replaceState(null, '', `#${key}`);
+}
+
+function toggleSidebar() {
+    isSidebarCollapsed.value = !isSidebarCollapsed.value;
+}
 
 async function loadDashboard() {
     try {
@@ -47,169 +73,175 @@ async function logout() {
     window.location.href = '/login';
 }
 
+watch(isSidebarCollapsed, (value) => {
+    window.localStorage.setItem('betini-sidebar', value ? 'collapsed' : 'expanded');
+});
+
 onMounted(loadDashboard);
 </script>
 
 <template>
-    <main class="min-h-screen bg-[#f4f0e8] text-slate-950">
-        <section class="grid min-h-screen lg:grid-cols-[280px_1fr]">
-            <aside class="border-b border-black/10 bg-[#111827] p-6 text-white lg:border-b-0 lg:border-r">
-                <div class="flex items-center gap-3">
-                    <div class="grid size-11 place-items-center rounded-2xl bg-amber-400 font-black text-slate-950">B</div>
-                    <div>
-                        <p class="text-sm text-white/60">Betini ERP</p>
-                        <h1 class="text-lg font-bold">Oficina moderna</h1>
-                    </div>
-                </div>
+    <main class="betini-app-shell" :class="{ 'is-sidebar-collapsed': isSidebarCollapsed }">
+        <aside class="betini-sidebar">
+            <a class="betini-sidebar__brand" href="#dashboard" aria-label="Betini Centro Automotivo" @click.prevent="setActiveModule('dashboard')">
+                <span class="betini-sidebar__logo"><img :src="logoUrl" alt="Betini Centro Automotivo"></span>
+            </a>
 
-                <nav class="mt-10 space-y-2 text-sm">
-                    <a class="block rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950" href="#dashboard">Dashboard</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#clientes">Clientes</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#veiculos">Veiculos</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#fornecedores">Fornecedores</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#produtos">Produtos</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#servicos">Servicos</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#ordens">Ordens</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#modulos">Modulos</a>
-                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#relatorios">Relatorios</a>
-                </nav>
-
-                <div class="mt-10 rounded-3xl border border-white/10 bg-white/5 p-4">
-                    <p class="text-sm font-semibold">Base migrada</p>
-                    <p class="mt-2 text-sm leading-6 text-white/65">
-                        Clientes, veiculos, fornecedores, produtos, servicos e pedidos foram remodelados a partir do legado.
-                    </p>
-                </div>
-
-                <button class="mt-6 w-full rounded-2xl border border-white/10 px-4 py-3 text-sm font-black text-white/80 transition hover:bg-white/10 hover:text-white" type="button" @click="logout">
-                    Sair do ERP
+            <nav class="betini-sidebar__nav" aria-label="Modulos do ERP">
+                <button
+                    v-for="module in modules"
+                    :key="module.key"
+                    class="betini-nav-item"
+                    :class="{ 'is-active': activeModule === module.key }"
+                    type="button"
+                    :title="module.label"
+                    @click="setActiveModule(module.key)"
+                >
+                    <span class="betini-nav-icon" aria-hidden="true">
+                        <svg v-if="module.icon === 'dashboard'" viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z" /></svg>
+                        <svg v-else-if="module.icon === 'person'" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0v1H5v-1Z" /></svg>
+                        <svg v-else-if="module.icon === 'car'" viewBox="0 0 24 24"><path d="M5.4 10 7 5.8A3 3 0 0 1 9.8 4h4.4A3 3 0 0 1 17 5.8l1.6 4.2A3 3 0 0 1 21 13v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1v-4a3 3 0 0 1 2.4-3Zm2.2 0h8.8l-1-3a1 1 0 0 0-1-.7H9.6a1 1 0 0 0-1 .7l-1 3ZM7 15.5A1.5 1.5 0 1 0 7 12a1.5 1.5 0 0 0 0 3.5Zm10 0a1.5 1.5 0 1 0 0-3.5 1.5 1.5 0 0 0 0 3.5Z" /></svg>
+                        <svg v-else-if="module.icon === 'truck'" viewBox="0 0 24 24"><path d="M3 5h11v9h1.2l1.7-4H21l2 3.5V18h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3V5Zm2 2v8.1A2 2 0 0 1 9 16h7.3l1.7-4h1.8l1.2 2.1V16h-1a2 2 0 0 1-4 0h-2V7H5Z" /></svg>
+                        <svg v-else-if="module.icon === 'box'" viewBox="0 0 24 24"><path d="m12 2 9 4.5v11L12 22l-9-4.5v-11L12 2Zm0 2.2L6.2 7 12 9.8 17.8 7 12 4.2ZM5 8.7v7.6l6 3v-7.6l-6-3Zm8 10.6 6-3V8.7l-6 3v7.6Z" /></svg>
+                        <svg v-else-if="module.icon === 'tool'" viewBox="0 0 24 24"><path d="M21 6.5a6.5 6.5 0 0 1-8.7 6.1l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9A6.5 6.5 0 0 1 17.5 1l-4 4 1.5 4 4 1.5 4-4Z" /></svg>
+                        <svg v-else viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-3-7 3V5a2 2 0 0 1 2-2Zm2 4v2h6V7H9Zm0 4v2h6v-2H9Z" /></svg>
+                    </span>
+                    <strong>{{ module.label }}</strong>
                 </button>
-            </aside>
+            </nav>
 
-            <div class="p-5 sm:p-8 lg:p-10">
-                <header id="dashboard" class="rounded-[2rem] bg-[#f97316] p-6 text-white shadow-xl shadow-orange-900/10 sm:p-8">
-                    <div class="max-w-4xl">
-                        <p class="font-semibold uppercase tracking-[0.25em] text-white/75">Painel operacional</p>
-                        <h2 class="mt-4 text-4xl font-black tracking-tight sm:text-6xl">Controle sua oficina sem a cara do sistema antigo.</h2>
-                        <p class="mt-4 max-w-2xl text-lg text-white/85">
-                            Uma base Laravel atual, Vue no front e caminho aberto para evoluir cadastros, OS, estoque e financeiro.
-                        </p>
+        </aside>
+
+        <section class="betini-workspace">
+            <header class="betini-topbar">
+                <div class="betini-topbar__left">
+                    <button class="betini-icon-button" type="button" :aria-label="isSidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'" @click="toggleSidebar">
+                        <span></span><span></span><span></span>
+                    </button>
+                    <div>
+                        <p>{{ activeMeta.eyebrow }}</p>
+                        <h1>{{ activeMeta.title }}</h1>
                     </div>
-                </header>
-
-                <div v-if="loadError" class="mt-6 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-800">
-                    {{ loadError }}
                 </div>
 
-                <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <article
-                        v-for="metric in dashboard.metrics"
-                        :key="metric.label"
-                        class="rounded-3xl border border-black/10 bg-white p-5 shadow-sm"
-                    >
-                        <p class="text-sm font-medium text-slate-500">{{ metric.label }}</p>
-                        <div class="mt-4 flex items-end justify-between">
-                            <strong class="text-4xl font-black">{{ metric.value }}</strong>
-                            <span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">{{ metric.trend }}</span>
+                <div class="betini-topbar__right">
+                    <div class="betini-settings-menu">
+                        <button
+                            class="betini-settings-button"
+                            type="button"
+                            aria-label="Configuracoes"
+                            :aria-expanded="isSettingsOpen"
+                            @click="isSettingsOpen = !isSettingsOpen"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M19.4 13.5c.08-.49.1-.99.1-1.5s-.02-1.01-.1-1.5l2.08-1.58-2-3.46-2.46.99a7.95 7.95 0 0 0-2.6-1.5L14.05 2h-4.1l-.37 2.95a7.95 7.95 0 0 0-2.6 1.5l-2.46-.99-2 3.46L4.6 10.5c-.08.49-.1.99-.1 1.5s.02 1.01.1 1.5l-2.08 1.58 2 3.46 2.46-.99a7.95 7.95 0 0 0 2.6 1.5l.37 2.95h4.1l.37-2.95a7.95 7.95 0 0 0 2.6-1.5l2.46.99 2-3.46-2.08-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
+                            </svg>
+                        </button>
+                        <div v-if="isSettingsOpen" class="betini-settings-dropdown" role="menu">
+                            <button type="button" role="menuitem" @click="setActiveModule('dashboard')">Dashboard</button>
+                            <button type="button" role="menuitem" disabled>Configuracoes em breve</button>
+                            <button class="is-danger" type="button" role="menuitem" @click="logout">Sair</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div v-if="loadError" class="betini-alert betini-alert--danger">
+                {{ loadError }}
+            </div>
+
+            <section v-if="activeModule === 'dashboard'" class="betini-dashboard-view">
+                <section class="betini-metric-grid">
+                    <article v-for="metric in dashboard.metrics" :key="metric.label" class="betini-metric-card">
+                        <span>{{ metric.label }}</span>
+                        <strong>{{ metric.value }}</strong>
+                        <small>{{ metric.trend }}</small>
+                    </article>
+                    <article v-if="isLoading" v-for="index in 4" :key="index" class="betini-metric-card is-loading" />
+                </section>
+
+                <section class="betini-dashboard-grid">
+                    <article class="betini-card">
+                        <div class="betini-card__head">
+                            <div>
+                                <p>Modulos</p>
+                                <h3>Nucleo do ERP</h3>
+                            </div>
+                        </div>
+                        <div class="betini-module-grid">
+                            <button v-for="module in modules.filter((item) => item.key !== 'dashboard')" :key="module.key" type="button" @click="setActiveModule(module.key)">
+                                <span class="betini-module-icon" aria-hidden="true">
+                                    <svg v-if="module.icon === 'person'" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0v1H5v-1Z" /></svg>
+                                    <svg v-else-if="module.icon === 'car'" viewBox="0 0 24 24"><path d="M5.4 10 7 5.8A3 3 0 0 1 9.8 4h4.4A3 3 0 0 1 17 5.8l1.6 4.2A3 3 0 0 1 21 13v4a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1v-4a3 3 0 0 1 2.4-3Zm2.2 0h8.8l-1-3a1 1 0 0 0-1-.7H9.6a1 1 0 0 0-1 .7l-1 3ZM7 15.5A1.5 1.5 0 1 0 7 12a1.5 1.5 0 0 0 0 3.5Zm10 0a1.5 1.5 0 1 0 0-3.5 1.5 1.5 0 0 0 0 3.5Z" /></svg>
+                                    <svg v-else-if="module.icon === 'truck'" viewBox="0 0 24 24"><path d="M3 5h11v9h1.2l1.7-4H21l2 3.5V18h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3V5Zm2 2v8.1A2 2 0 0 1 9 16h7.3l1.7-4h1.8l1.2 2.1V16h-1a2 2 0 0 1-4 0h-2V7H5Z" /></svg>
+                                    <svg v-else-if="module.icon === 'box'" viewBox="0 0 24 24"><path d="m12 2 9 4.5v11L12 22l-9-4.5v-11L12 2Zm0 2.2L6.2 7 12 9.8 17.8 7 12 4.2ZM5 8.7v7.6l6 3v-7.6l-6-3Zm8 10.6 6-3V8.7l-6 3v7.6Z" /></svg>
+                                    <svg v-else-if="module.icon === 'tool'" viewBox="0 0 24 24"><path d="M21 6.5a6.5 6.5 0 0 1-8.7 6.1l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9A6.5 6.5 0 0 1 17.5 1l-4 4 1.5 4 4 1.5 4-4Z" /></svg>
+                                    <svg v-else viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-3-7 3V5a2 2 0 0 1 2-2Zm2 4v2h6V7H9Zm0 4v2h6v-2H9Z" /></svg>
+                                </span>
+                                <strong>{{ module.label }}</strong>
+                            </button>
                         </div>
                     </article>
 
-                    <article v-if="isLoading" v-for="index in 4" :key="index" class="h-32 animate-pulse rounded-3xl bg-white/70" />
-                </section>
-
-                <section id="modulos" class="mt-8 grid gap-6 xl:grid-cols-[1fr_360px]">
-                    <div class="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-                        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                    <aside class="betini-card betini-card--dark">
+                        <div class="betini-card__head">
                             <div>
-                                <p class="text-sm font-bold uppercase tracking-[0.2em] text-orange-600">Modulos</p>
-                                <h3 class="text-2xl font-black">Nucleo do ERP</h3>
+                                <p>Status das OS</p>
+                                <h3>Fila de trabalho</h3>
                             </div>
-                            <button class="rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
-                                Novo cadastro
-                            </button>
                         </div>
-
-                        <div class="mt-6 grid gap-4 md:grid-cols-2">
-                            <article
-                                v-for="module in dashboard.modules"
-                                :key="module.name"
-                                class="rounded-3xl border border-black/10 bg-[#faf8f2] p-5 transition hover:-translate-y-1 hover:shadow-lg"
-                            >
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h4 class="text-lg font-black">{{ module.name }}</h4>
-                                        <p class="mt-2 text-sm leading-6 text-slate-600">{{ module.description }}</p>
-                                    </div>
-                                    <span class="rounded-2xl bg-white px-3 py-2 text-lg font-black">{{ module.count }}</span>
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-
-                    <aside class="rounded-[2rem] border border-black/10 bg-[#172554] p-6 text-white shadow-sm">
-                        <p class="text-sm font-bold uppercase tracking-[0.2em] text-blue-200">Status das OS</p>
-                        <h3 class="mt-2 text-2xl font-black">Fila de trabalho</h3>
-
-                        <div class="mt-6 space-y-3">
-                            <div v-if="!statusRows.length" class="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-                                Nenhuma ordem cadastrada ainda.
-                            </div>
-                            <div v-for="[status, total] in statusRows" :key="status" class="flex items-center justify-between rounded-3xl bg-white p-4 text-slate-950">
-                                <span class="font-bold">{{ status }}</span>
-                                <strong class="text-2xl">{{ total }}</strong>
+                        <div class="betini-status-list">
+                            <div v-if="!statusRows.length" class="betini-empty">Nenhuma ordem cadastrada ainda.</div>
+                            <div v-for="[status, total] in statusRows" :key="status">
+                                <span>{{ status }}</span>
+                                <strong>{{ total }}</strong>
                             </div>
                         </div>
                     </aside>
-                </section>
 
-                <ClientPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
-
-                <VehiclePanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
-
-                <ProviderPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
-
-                <ProductPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
-
-                <ServicePanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
-
-                <OrderPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
-
-                <section id="ordens-recentes" class="mt-8 rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-                    <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                        <div>
-                            <p class="text-sm font-bold uppercase tracking-[0.2em] text-orange-600">Ordens recentes</p>
-                            <h3 class="text-2xl font-black">Atendimento e vendas</h3>
+                    <article class="betini-card betini-card--wide">
+                        <div class="betini-card__head">
+                            <div>
+                                <p>Ordens recentes</p>
+                                <h3>Atendimento e vendas</h3>
+                            </div>
                         </div>
-                        <span class="text-sm font-semibold text-slate-500">Integrado ao backend Laravel</span>
-                    </div>
-
-                    <div class="mt-6 overflow-hidden rounded-3xl border border-black/10">
-                        <table class="w-full min-w-[680px] text-left text-sm">
-                            <thead class="bg-slate-950 text-white">
-                                <tr>
-                                    <th class="px-5 py-4">OS</th>
-                                    <th class="px-5 py-4">Cliente</th>
-                                    <th class="px-5 py-4">Servico</th>
-                                    <th class="px-5 py-4">Status</th>
-                                    <th class="px-5 py-4 text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-if="!dashboard.recentOrders.length">
-                                    <td class="px-5 py-8 text-center text-slate-500" colspan="5">Nenhuma ordem cadastrada ainda.</td>
-                                </tr>
-                                <tr v-for="order in dashboard.recentOrders" :key="order.id" class="border-t border-black/10">
-                                    <td class="px-5 py-4 font-bold">#{{ order.id }}</td>
-                                    <td class="px-5 py-4">{{ order.client ?? 'Sem cliente' }}</td>
-                                    <td class="px-5 py-4">{{ order.service ?? 'Nao informado' }}</td>
-                                    <td class="px-5 py-4"><span class="rounded-full bg-amber-100 px-3 py-1 font-bold text-amber-800">{{ order.status }}</span></td>
-                                    <td class="px-5 py-4 text-right font-black">{{ moneyFormatter.format(order.total ?? 0) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                        <div class="betini-table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>OS</th>
+                                        <th>Cliente</th>
+                                        <th>Servico</th>
+                                        <th>Status</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="!dashboard.recentOrders.length">
+                                        <td colspan="5">Nenhuma ordem cadastrada ainda.</td>
+                                    </tr>
+                                    <tr v-for="order in dashboard.recentOrders" :key="order.id">
+                                        <td>#{{ order.id }}</td>
+                                        <td>{{ order.client ?? 'Sem cliente' }}</td>
+                                        <td>{{ order.service ?? 'Nao informado' }}</td>
+                                        <td><span class="betini-chip">{{ order.status }}</span></td>
+                                        <td>{{ moneyFormatter.format(order.total ?? 0) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
                 </section>
-            </div>
+            </section>
+
+            <section v-else class="betini-module-view">
+                <component
+                    :is="activeComponent"
+                    :can-manage-records="dashboard.user.canManageRecords"
+                    @changed="loadDashboard"
+                />
+            </section>
         </section>
     </main>
 </template>
