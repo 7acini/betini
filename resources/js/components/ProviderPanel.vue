@@ -6,6 +6,13 @@ import UiPagination from './UiPagination.vue';
 
 const emit = defineEmits(['changed']);
 
+defineProps({
+    canManageRecords: {
+        type: Boolean,
+        default: false,
+    },
+});
+
 const emptyForm = {
     name: '',
     cnpj: '',
@@ -246,7 +253,7 @@ onMounted(() => loadProviders());
                             <td class="px-5 py-4">{{ provider.city ?? '-' }}{{ provider.state ? `/${provider.state}` : '' }}</td>
                             <td class="px-5 py-4 text-right">
                                 <button class="rounded-xl bg-slate-100 px-3 py-2 font-bold" type="button" @click="fillForm(provider)">Editar</button>
-                                <button class="ml-2 rounded-xl bg-red-50 px-3 py-2 font-bold text-red-700" type="button" @click="deleteProvider(provider)">Remover</button>
+                                <button v-if="canManageRecords" class="ml-2 rounded-xl bg-red-50 px-3 py-2 font-bold text-red-700" type="button" @click="deleteProvider(provider)">Remover</button>
                             </td>
                         </tr>
                     </tbody>

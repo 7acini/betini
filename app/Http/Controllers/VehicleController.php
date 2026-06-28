@@ -48,6 +48,8 @@ class VehicleController extends Controller
 
     public function destroy(Vehicle $vehicle): JsonResponse
     {
+        abort_unless(request()->user()->can('manage-records'), 403);
+
         $vehicle->delete();
 
         return response()->json(status: 204);

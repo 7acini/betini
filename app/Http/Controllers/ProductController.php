@@ -48,6 +48,8 @@ class ProductController extends Controller
 
     public function destroy(Product $product): JsonResponse
     {
+        abort_unless(request()->user()->can('manage-records'), 403);
+
         $product->delete();
 
         return response()->json(status: 204);

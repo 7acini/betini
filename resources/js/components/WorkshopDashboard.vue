@@ -14,6 +14,9 @@ const fallbackDashboard = {
     modules: [],
     ordersByStatus: {},
     recentOrders: [],
+    user: {
+        canManageRecords: false,
+    },
 };
 
 const dashboard = ref(fallbackDashboard);
@@ -159,17 +162,17 @@ onMounted(loadDashboard);
                     </aside>
                 </section>
 
-                <ClientPanel class="mt-8" @changed="loadDashboard" />
+                <ClientPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
 
-                <VehiclePanel class="mt-8" @changed="loadDashboard" />
+                <VehiclePanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
 
-                <ProviderPanel class="mt-8" @changed="loadDashboard" />
+                <ProviderPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
 
-                <ProductPanel class="mt-8" @changed="loadDashboard" />
+                <ProductPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
 
-                <ServicePanel class="mt-8" @changed="loadDashboard" />
+                <ServicePanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
 
-                <OrderPanel class="mt-8" @changed="loadDashboard" />
+                <OrderPanel class="mt-8" :can-manage-records="dashboard.user.canManageRecords" @changed="loadDashboard" />
 
                 <section id="ordens-recentes" class="mt-8 rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
                     <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">

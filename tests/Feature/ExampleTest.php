@@ -39,6 +39,7 @@ class ExampleTest extends TestCase
                 ],
                 'ordersByStatus',
                 'recentOrders',
+                'user' => ['name', 'role', 'canManageRecords'],
             ]);
     }
 }

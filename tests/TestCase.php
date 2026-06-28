@@ -7,9 +7,9 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
-    protected function authenticate(): User
+    protected function authenticate(string $role = 'admin'): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => $role]);
 
         $this->actingAs($user);
 

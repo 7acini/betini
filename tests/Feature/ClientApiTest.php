@@ -95,4 +95,22 @@ class ClientApiTest extends TestCase
 
         $this->assertSoftDeleted('clients', ['id' => $client->id]);
     }
+
+    public function test_non_admin_cannot_delete_client(): void
+    {
+        $this->authenticate('atendente');
+
+        $client = Client::create([
+            'name' => 'Cliente Protegido',
+            'cpf' => '12345678901',
+        ]);
+
+        $this->deleteJson("/api/workshop/clients/{$client->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('clients', [
+            'id' => $client->id,
+            'deleted_at' => null,
+        ]);
+    }
 }

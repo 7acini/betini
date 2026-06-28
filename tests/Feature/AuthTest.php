@@ -54,6 +54,7 @@ class AuthTest extends TestCase
         $admin = User::where('email', 'admin@betini.local')->first();
 
         $this->assertNotNull($admin);
+        $this->assertSame('admin', $admin->role);
         $this->assertTrue(Hash::check('Betini@123', $admin->password));
     }
 }

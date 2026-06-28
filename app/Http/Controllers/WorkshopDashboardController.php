@@ -50,6 +50,11 @@ class WorkshopDashboardController extends Controller
                     'total' => $order->total,
                     'createdAt' => $order->created_at?->toDateString(),
                 ]),
+            'user' => [
+                'name' => request()->user()->name,
+                'role' => request()->user()->role,
+                'canManageRecords' => request()->user()->can('manage-records'),
+            ],
         ]);
     }
 }

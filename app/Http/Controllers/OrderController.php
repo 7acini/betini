@@ -49,6 +49,8 @@ class OrderController extends Controller
 
     public function destroy(Order $order): JsonResponse
     {
+        abort_unless(request()->user()->can('manage-records'), 403);
+
         $order->delete();
 
         return response()->json(status: 204);

@@ -47,6 +47,8 @@ class ClientController extends Controller
 
     public function destroy(Client $client): JsonResponse
     {
+        abort_unless(request()->user()->can('manage-records'), 403);
+
         $client->delete();
 
         return response()->json(status: 204);

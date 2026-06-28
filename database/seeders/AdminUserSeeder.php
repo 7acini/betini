@@ -13,6 +13,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@betini.local'],
             [
                 'name' => 'Administrador Betini',
+                'role' => 'admin',
                 'password' => 'Betini@123',
                 'email_verified_at' => now(),
             ],

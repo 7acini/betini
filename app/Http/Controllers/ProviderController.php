@@ -46,6 +46,8 @@ class ProviderController extends Controller
 
     public function destroy(Provider $provider): JsonResponse
     {
+        abort_unless(request()->user()->can('manage-records'), 403);
+
         $provider->delete();
 
         return response()->json(status: 204);

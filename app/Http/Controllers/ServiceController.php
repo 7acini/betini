@@ -45,6 +45,8 @@ class ServiceController extends Controller
 
     public function destroy(Service $service): JsonResponse
     {
+        abort_unless(request()->user()->can('manage-records'), 403);
+
         $service->delete();
 
         return response()->json(status: 204);
