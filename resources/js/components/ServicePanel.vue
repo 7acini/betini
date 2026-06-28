@@ -1,5 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
+import { apiFetch, jsonBody } from '../lib/http';
+import { moneyFormatter } from '../lib/formatters';
+import UiPagination from './UiPagination.vue';
 
 const emit = defineEmits(['changed']);
 
@@ -18,9 +21,6 @@ const editingServiceId = ref(null);
 const errors = ref({});
 const message = ref(null);
 const form = reactive({ ...emptyForm });
-
-const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-const moneyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const formTitle = computed(() => (editingServiceId.value ? 'Editar servico' : 'Novo servico'));
 
@@ -47,7 +47,7 @@ async function loadServices(pageUrl = null) {
     const url = pageUrl ?? `/api/workshop/services?search=${encodeURIComponent(search.value)}`;
 
     try {
-        const response = await fetch(url, { headers: { Accept: 'application/json' } });
+        const response = await apiFetch(url);
 
         if (!response.ok) {
             throw new Error('Nao foi possivel carregar os servicos.');
@@ -70,14 +70,9 @@ async function saveService() {
     const endpoint = isEditing ? `/api/workshop/services/${editingServiceId.value}` : '/api/workshop/services';
 
     try {
-        const response = await fetch(endpoint, {
+        const response = await apiFetch(endpoint, {
             method: isEditing ? 'PUT' : 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-            },
-            body: JSON.stringify({
+            body: jsonBody({
                 ...form,
                 base_price: form.base_price === '' ? null : Number(form.base_price),
             }),
@@ -107,12 +102,8 @@ async function deleteService(service) {
         return;
     }
 
-    const response = await fetch(`/api/workshop/services/${service.id}`, {
+    const response = await apiFetch(`/api/workshop/services/${service.id}`, {
         method: 'DELETE',
-        headers: {
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-        },
     });
 
     if (!response.ok) {
@@ -209,13 +200,7 @@ onMounted(() => loadServices());
                         </tr>
                     </tbody>
                 </table>
-                <div v-if="pagination" class="flex items-center justify-between border-t border-black/10 bg-[#faf8f2] px-5 py-4 text-sm">
-                    <span>Pagina {{ pagination.current_page }} de {{ pagination.last_page }}</span>
-                    <div class="flex gap-2">
-                        <button class="rounded-xl border border-black/10 px-3 py-2 disabled:opacity-40" :disabled="!pagination.prev_page_url" type="button" @click="loadServices(pagination.prev_page_url)">Anterior</button>
-                        <button class="rounded-xl border border-black/10 px-3 py-2 disabled:opacity-40" :disabled="!pagination.next_page_url" type="button" @click="loadServices(pagination.next_page_url)">Proxima</button>
-                    </div>
-                </div>
+                <UiPagination v-if="pagination" :pagination="pagination" @navigate="loadServices" />
             </div>
         </div>
     </section>

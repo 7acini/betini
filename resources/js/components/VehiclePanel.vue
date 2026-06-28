@@ -1,5 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
+import { apiFetch, jsonBody } from '../lib/http';
+import UiPagination from './UiPagination.vue';
 
 const emit = defineEmits(['changed']);
 
@@ -24,8 +26,6 @@ const editingVehicleId = ref(null);
 const errors = ref({});
 const message = ref(null);
 const form = reactive({ ...emptyForm });
-
-const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
 const formTitle = computed(() => (editingVehicleId.value ? 'Editar veiculo' : 'Novo veiculo'));
 
@@ -56,9 +56,7 @@ function resetForm() {
 }
 
 async function loadClients() {
-    const response = await fetch('/api/workshop/clients?per_page=100', {
-        headers: { Accept: 'application/json' },
-    });
+    const response = await apiFetch('/api/workshop/clients?per_page=100');
 
     if (!response.ok) {
         throw new Error('Nao foi possivel carregar os clientes.');
@@ -74,7 +72,7 @@ async function loadVehicles(pageUrl = null) {
     const url = pageUrl ?? `/api/workshop/vehicles?search=${encodeURIComponent(search.value)}`;
 
     try {
-        const response = await fetch(url, { headers: { Accept: 'application/json' } });
+        const response = await apiFetch(url);
 
         if (!response.ok) {
             throw new Error('Nao foi possivel carregar os veiculos.');
@@ -97,14 +95,9 @@ async function saveVehicle() {
     const endpoint = isEditing ? `/api/workshop/vehicles/${editingVehicleId.value}` : '/api/workshop/vehicles';
 
     try {
-        const response = await fetch(endpoint, {
+        const response = await apiFetch(endpoint, {
             method: isEditing ? 'PUT' : 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-            },
-            body: JSON.stringify({
+            body: jsonBody({
                 ...form,
                 plate: normalizePlate(form.plate),
                 current_km: form.current_km === '' ? null : Number(form.current_km),
@@ -135,12 +128,8 @@ async function deleteVehicle(vehicle) {
         return;
     }
 
-    const response = await fetch(`/api/workshop/vehicles/${vehicle.id}`, {
+    const response = await apiFetch(`/api/workshop/vehicles/${vehicle.id}`, {
         method: 'DELETE',
-        headers: {
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-        },
     });
 
     if (!response.ok) {
@@ -278,13 +267,7 @@ onMounted(async () => {
                         </tr>
                     </tbody>
                 </table>
-                <div v-if="pagination" class="flex items-center justify-between border-t border-black/10 bg-[#faf8f2] px-5 py-4 text-sm">
-                    <span>Pagina {{ pagination.current_page }} de {{ pagination.last_page }}</span>
-                    <div class="flex gap-2">
-                        <button class="rounded-xl border border-black/10 px-3 py-2 disabled:opacity-40" :disabled="!pagination.prev_page_url" type="button" @click="loadVehicles(pagination.prev_page_url)">Anterior</button>
-                        <button class="rounded-xl border border-black/10 px-3 py-2 disabled:opacity-40" :disabled="!pagination.next_page_url" type="button" @click="loadVehicles(pagination.next_page_url)">Proxima</button>
-                    </div>
-                </div>
+                <UiPagination v-if="pagination" :pagination="pagination" @navigate="loadVehicles" />
             </div>
         </div>
     </section>

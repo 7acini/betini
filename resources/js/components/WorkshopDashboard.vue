@@ -6,6 +6,8 @@ import ProviderPanel from './ProviderPanel.vue';
 import ProductPanel from './ProductPanel.vue';
 import ServicePanel from './ServicePanel.vue';
 import VehiclePanel from './VehiclePanel.vue';
+import { apiFetch } from '../lib/http';
+import { moneyFormatter } from '../lib/formatters';
 
 const fallbackDashboard = {
     metrics: [],
@@ -18,19 +20,12 @@ const dashboard = ref(fallbackDashboard);
 const isLoading = ref(true);
 const loadError = ref(null);
 
-const formatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-});
-
 const statusRows = computed(() => Object.entries(dashboard.value.ordersByStatus ?? {}));
 
 async function loadDashboard() {
     try {
         loadError.value = null;
-        const response = await fetch('/api/workshop/dashboard', {
-            headers: { Accept: 'application/json' },
-        });
+        const response = await apiFetch('/api/workshop/dashboard');
 
         if (!response.ok) {
             throw new Error('Nao foi possivel carregar o dashboard.');
@@ -196,7 +191,7 @@ onMounted(loadDashboard);
                                     <td class="px-5 py-4">{{ order.client ?? 'Sem cliente' }}</td>
                                     <td class="px-5 py-4">{{ order.service ?? 'Nao informado' }}</td>
                                     <td class="px-5 py-4"><span class="rounded-full bg-amber-100 px-3 py-1 font-bold text-amber-800">{{ order.status }}</span></td>
-                                    <td class="px-5 py-4 text-right font-black">{{ formatter.format(order.total ?? 0) }}</td>
+                                    <td class="px-5 py-4 text-right font-black">{{ moneyFormatter.format(order.total ?? 0) }}</td>
                                 </tr>
                             </tbody>
                         </table>
