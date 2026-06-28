@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import ClientPanel from './ClientPanel.vue';
 
 const fallbackDashboard = {
     metrics: [],
@@ -19,8 +20,9 @@ const formatter = new Intl.NumberFormat('pt-BR', {
 
 const statusRows = computed(() => Object.entries(dashboard.value.ordersByStatus ?? {}));
 
-onMounted(async () => {
+async function loadDashboard() {
     try {
+        loadError.value = null;
         const response = await fetch('/api/workshop/dashboard', {
             headers: { Accept: 'application/json' },
         });
@@ -35,7 +37,9 @@ onMounted(async () => {
     } finally {
         isLoading.value = false;
     }
-});
+}
+
+onMounted(loadDashboard);
 </script>
 
 <template>
@@ -52,6 +56,7 @@ onMounted(async () => {
 
                 <nav class="mt-10 space-y-2 text-sm">
                     <a class="block rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950" href="#dashboard">Dashboard</a>
+                    <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#clientes">Clientes</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#modulos">Modulos</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#ordens">Ordens de servico</a>
                     <a class="block rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/10 hover:text-white" href="#relatorios">Relatorios</a>
@@ -140,6 +145,8 @@ onMounted(async () => {
                         </div>
                     </aside>
                 </section>
+
+                <ClientPanel class="mt-8" @changed="loadDashboard" />
 
                 <section id="ordens" class="mt-8 rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
                     <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
