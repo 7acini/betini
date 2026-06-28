@@ -13,6 +13,13 @@ class OrderApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->authenticate();
+    }
+
     public function test_orders_can_be_listed_with_relations(): void
     {
         $client = Client::create(['name' => 'Cliente OS', 'cpf' => '12345678901']);

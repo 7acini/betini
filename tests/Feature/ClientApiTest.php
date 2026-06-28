@@ -10,6 +10,13 @@ class ClientApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->authenticate();
+    }
+
     public function test_clients_can_be_listed(): void
     {
         Client::create([

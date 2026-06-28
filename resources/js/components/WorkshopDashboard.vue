@@ -39,6 +39,11 @@ async function loadDashboard() {
     }
 }
 
+async function logout() {
+    await apiFetch('/logout', { method: 'POST' });
+    window.location.href = '/login';
+}
+
 onMounted(loadDashboard);
 </script>
 
@@ -72,6 +77,10 @@ onMounted(loadDashboard);
                         Clientes, veiculos, fornecedores, produtos, servicos e pedidos foram remodelados a partir do legado.
                     </p>
                 </div>
+
+                <button class="mt-6 w-full rounded-2xl border border-white/10 px-4 py-3 text-sm font-black text-white/80 transition hover:bg-white/10 hover:text-white" type="button" @click="logout">
+                    Sair do ERP
+                </button>
             </aside>
 
             <div class="p-5 sm:p-8 lg:p-10">

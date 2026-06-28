@@ -11,6 +11,13 @@ class VehicleApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->authenticate();
+    }
+
     public function test_vehicles_can_be_listed_with_client(): void
     {
         $client = Client::create([

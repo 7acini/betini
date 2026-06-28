@@ -11,6 +11,13 @@ class ProductApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->authenticate();
+    }
+
     public function test_products_can_be_listed_with_provider(): void
     {
         $provider = Provider::create([

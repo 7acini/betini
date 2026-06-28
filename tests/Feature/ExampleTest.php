@@ -14,6 +14,7 @@ class ExampleTest extends TestCase
      */
     public function test_the_application_returns_a_successful_response(): void
     {
+        $this->authenticate();
         $this->withoutVite();
 
         $response = $this->get('/');
@@ -23,6 +24,8 @@ class ExampleTest extends TestCase
 
     public function test_workshop_dashboard_returns_summary_payload(): void
     {
+        $this->authenticate();
+
         $response = $this->getJson('/api/workshop/dashboard');
 
         $response

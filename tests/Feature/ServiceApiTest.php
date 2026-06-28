@@ -10,6 +10,13 @@ class ServiceApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->authenticate();
+    }
+
     public function test_services_can_be_listed(): void
     {
         Service::create([

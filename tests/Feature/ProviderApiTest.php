@@ -10,6 +10,13 @@ class ProviderApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->authenticate();
+    }
+
     public function test_providers_can_be_listed(): void
     {
         Provider::create([
