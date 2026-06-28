@@ -14,6 +14,8 @@ class ClientController extends Controller
     {
         $search = trim((string) $request->query('search'));
 
+        $perPage = min(max((int) $request->integer('per_page', 10), 1), 100);
+
         $clients = Client::query()
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
@@ -23,7 +25,7 @@ class ClientController extends Controller
                 });
             })
             ->latest()
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
 
         return response()->json($clients);
