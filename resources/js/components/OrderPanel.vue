@@ -207,8 +207,8 @@ onMounted(async () => {
             {{ message }}
         </div>
 
-        <div class="mt-6 grid gap-6 xl:grid-cols-[460px_1fr]">
-            <form class="rounded-3xl bg-[#fff0f0] p-5" @submit.prevent="saveOrder">
+        <div class="mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+            <form class="min-w-0 rounded-3xl bg-[#fff0f0] p-5" @submit.prevent="saveOrder">
                 <h4 class="text-xl font-black">{{ formTitle }}</h4>
 
                 <div class="mt-5 grid gap-4">
@@ -251,21 +251,32 @@ onMounted(async () => {
                         </label>
                     </div>
 
-                    <div class="rounded-3xl border border-black/10 bg-white p-4">
-                        <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0 rounded-3xl border border-black/10 bg-white p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
                             <strong>Produtos da OS</strong>
                             <button class="rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white" type="button" @click="addItem">Adicionar item</button>
                         </div>
                         <div class="mt-4 space-y-3">
                             <div v-if="!form.items.length" class="text-sm text-slate-500">Nenhum produto adicionado.</div>
-                            <div v-for="(item, index) in form.items" :key="index" class="grid gap-3 rounded-2xl bg-[#faf8f2] p-3 sm:grid-cols-[1fr_80px_110px_auto]">
-                                <select v-model="item.product_id" class="rounded-xl border border-black/10 px-3 py-2 outline-none" @change="fillProductPrice(item)">
-                                    <option value="">Produto</option>
-                                    <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
-                                </select>
-                                <input v-model="item.quantity" class="rounded-xl border border-black/10 px-3 py-2 outline-none" min="1" type="number">
-                                <input v-model="item.price" class="rounded-xl border border-black/10 px-3 py-2 outline-none" min="0" step="0.01" type="number">
-                                <button class="rounded-xl bg-red-50 px-3 py-2 font-bold text-red-700" type="button" @click="removeItem(index)">X</button>
+                            <div v-for="(item, index) in form.items" :key="index" class="grid min-w-0 gap-3 rounded-2xl bg-[#faf8f2] p-3">
+                                <label class="block min-w-0">
+                                    <span class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Produto</span>
+                                    <select v-model="item.product_id" class="mt-1 w-full min-w-0 rounded-xl border border-black/10 px-3 py-2 outline-none" @change="fillProductPrice(item)">
+                                        <option value="">Selecione um produto</option>
+                                        <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
+                                    </select>
+                                </label>
+                                <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px]">
+                                    <label class="block min-w-0">
+                                        <span class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Quantidade</span>
+                                        <input v-model="item.quantity" class="mt-1 w-full min-w-0 rounded-xl border border-black/10 px-3 py-2 outline-none" min="1" type="number">
+                                    </label>
+                                    <label class="block min-w-0">
+                                        <span class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Preco</span>
+                                        <input v-model="item.price" class="mt-1 w-full min-w-0 rounded-xl border border-black/10 px-3 py-2 outline-none" min="0" step="0.01" type="number">
+                                    </label>
+                                    <button class="mt-5 rounded-xl bg-red-50 px-3 py-2 font-bold text-red-700" type="button" aria-label="Remover item" @click="removeItem(index)">X</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -290,7 +301,7 @@ onMounted(async () => {
                 </div>
             </form>
 
-            <div class="overflow-hidden rounded-3xl border border-black/10">
+            <div class="min-w-0 overflow-hidden rounded-3xl border border-black/10">
                 <table class="w-full min-w-[920px] text-left text-sm">
                     <thead class="bg-slate-950 text-white">
                         <tr>
