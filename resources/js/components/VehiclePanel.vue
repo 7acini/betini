@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { apiFetch, jsonBody } from '../lib/http';
 import UiPagination from './UiPagination.vue';
 
@@ -32,12 +32,93 @@ const isSaving = ref(false);
 const editingVehicleId = ref(null);
 const errors = ref({});
 const message = ref(null);
+const brandSuggestions = ref([]);
+const modelSuggestions = ref([]);
+const selectedBrandCode = ref('');
+const isLoadingBrands = ref(false);
+const isLoadingModels = ref(false);
+const isSelectingSuggestion = ref(false);
 const form = reactive({ ...emptyForm });
 
 const formTitle = computed(() => (editingVehicleId.value ? 'Editar veiculo' : 'Novo veiculo'));
+const platePreview = computed(() => normalizePlate(form.plate).padEnd(7, ' ').slice(0, 7));
+const hasPlatePreview = computed(() => normalizePlate(form.plate).length > 0);
 
 function normalizePlate(value) {
     return String(value ?? '').replace(/[^a-zA-Z0-9]+/g, '').toUpperCase();
+}
+
+function debounce(callback, delay = 260) {
+    let timer = null;
+
+    return (...args) => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => callback(...args), delay);
+    };
+}
+
+async function loadBrandSuggestions(searchTerm) {
+    if (String(searchTerm ?? '').trim().length < 2) {
+        brandSuggestions.value = [];
+        return;
+    }
+
+    isLoadingBrands.value = true;
+
+    try {
+        const response = await apiFetch(`/api/workshop/vehicle-catalog/brands?search=${encodeURIComponent(searchTerm)}`);
+
+        if (!response.ok) {
+            brandSuggestions.value = [];
+            return;
+        }
+
+        const payload = await response.json();
+        brandSuggestions.value = payload.data ?? [];
+    } finally {
+        isLoadingBrands.value = false;
+    }
+}
+
+async function loadModelSuggestions(searchTerm) {
+    if (!selectedBrandCode.value || String(searchTerm ?? '').trim().length < 2) {
+        modelSuggestions.value = [];
+        return;
+    }
+
+    isLoadingModels.value = true;
+
+    try {
+        const response = await apiFetch(`/api/workshop/vehicle-catalog/models?brand_code=${encodeURIComponent(selectedBrandCode.value)}&search=${encodeURIComponent(searchTerm)}`);
+
+        if (!response.ok) {
+            modelSuggestions.value = [];
+            return;
+        }
+
+        const payload = await response.json();
+        modelSuggestions.value = payload.data ?? [];
+    } finally {
+        isLoadingModels.value = false;
+    }
+}
+
+const debouncedLoadBrandSuggestions = debounce(loadBrandSuggestions);
+const debouncedLoadModelSuggestions = debounce(loadModelSuggestions);
+
+function selectBrand(brand) {
+    isSelectingSuggestion.value = true;
+    form.brand = brand.name;
+    form.model = '';
+    selectedBrandCode.value = brand.code;
+    brandSuggestions.value = [];
+    modelSuggestions.value = [];
+}
+
+function selectModel(model) {
+    isSelectingSuggestion.value = true;
+    form.model = model.name;
+    modelSuggestions.value = [];
 }
 
 function fillForm(vehicle) {
@@ -52,6 +133,9 @@ function fillForm(vehicle) {
         color: vehicle.color ?? '',
         fuel_type: vehicle.fuel_type ?? '',
     });
+    selectedBrandCode.value = '';
+    brandSuggestions.value = [];
+    modelSuggestions.value = [];
     errors.value = {};
     message.value = null;
 }
@@ -59,6 +143,9 @@ function fillForm(vehicle) {
 function resetForm() {
     editingVehicleId.value = null;
     Object.assign(form, emptyForm);
+    selectedBrandCode.value = '';
+    brandSuggestions.value = [];
+    modelSuggestions.value = [];
     errors.value = {};
 }
 
@@ -148,6 +235,26 @@ async function deleteVehicle(vehicle) {
     emit('changed');
 }
 
+watch(() => form.brand, (value) => {
+    if (isSelectingSuggestion.value) {
+        isSelectingSuggestion.value = false;
+        return;
+    }
+
+    selectedBrandCode.value = '';
+    modelSuggestions.value = [];
+    debouncedLoadBrandSuggestions(value);
+});
+
+watch(() => form.model, (value) => {
+    if (isSelectingSuggestion.value) {
+        isSelectingSuggestion.value = false;
+        return;
+    }
+
+    debouncedLoadModelSuggestions(value);
+});
+
 onMounted(async () => {
     await Promise.all([loadClients(), loadVehicles()]);
 });
@@ -190,14 +297,26 @@ onMounted(async () => {
                     </label>
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="block">
+                        <label class="betini-autocomplete-field">
                             <span class="text-sm font-bold text-slate-700">Marca</span>
-                            <input v-model="form.brand" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-blue-600" type="text">
+                            <input v-model="form.brand" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-blue-600" placeholder="Digite Chev, Volks, Fiat..." type="text" autocomplete="off">
+                            <div v-if="isLoadingBrands || brandSuggestions.length" class="betini-autocomplete-menu">
+                                <button v-for="brand in brandSuggestions" :key="brand.code" type="button" @click="selectBrand(brand)">
+                                    {{ brand.name }}
+                                </button>
+                                <span v-if="isLoadingBrands">Consultando marcas...</span>
+                            </div>
                             <small v-if="errors.brand" class="mt-1 block text-red-700">{{ errors.brand[0] }}</small>
                         </label>
-                        <label class="block">
+                        <label class="betini-autocomplete-field">
                             <span class="text-sm font-bold text-slate-700">Modelo</span>
-                            <input v-model="form.model" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-blue-600" type="text">
+                            <input v-model="form.model" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-blue-600" :disabled="!selectedBrandCode && !form.model" :placeholder="selectedBrandCode ? 'Digite Onix, Corolla, Gol...' : 'Selecione uma marca para sugerir modelos'" type="text" autocomplete="off">
+                            <div v-if="isLoadingModels || modelSuggestions.length" class="betini-autocomplete-menu">
+                                <button v-for="model in modelSuggestions" :key="model.code" type="button" @click="selectModel(model)">
+                                    {{ model.name }}
+                                </button>
+                                <span v-if="isLoadingModels">Consultando modelos...</span>
+                            </div>
                             <small v-if="errors.model" class="mt-1 block text-red-700">{{ errors.model[0] }}</small>
                         </label>
                     </div>
@@ -205,7 +324,11 @@ onMounted(async () => {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label class="block">
                             <span class="text-sm font-bold text-slate-700">Placa</span>
-                            <input v-model="form.plate" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 uppercase outline-none focus:border-blue-600" maxlength="8" type="text">
+                            <input v-model="form.plate" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 uppercase outline-none focus:border-blue-600" maxlength="8" type="text" placeholder="ABC1D23">
+                            <div v-if="hasPlatePreview" class="betini-mercosul-plate" aria-label="Previa da placa Mercosul">
+                                <div>BRASIL</div>
+                                <strong>{{ platePreview }}</strong>
+                            </div>
                             <small v-if="errors.plate" class="mt-1 block text-red-700">{{ errors.plate[0] }}</small>
                         </label>
                         <label class="block">

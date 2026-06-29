@@ -7,6 +7,7 @@ use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\VehicleCatalogController;
 use App\Http\Controllers\WorkshopDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/api/workshop/dashboard', WorkshopDashboardController::class)->name('workshop.dashboard');
+    Route::get('/api/workshop/vehicle-catalog/brands', [VehicleCatalogController::class, 'brands'])->name('vehicle-catalog.brands');
+    Route::get('/api/workshop/vehicle-catalog/models', [VehicleCatalogController::class, 'models'])->name('vehicle-catalog.models');
     Route::apiResource('/api/workshop/clients', ClientController::class)->except(['show']);
     Route::apiResource('/api/workshop/orders', OrderController::class)->except(['show']);
     Route::apiResource('/api/workshop/providers', ProviderController::class)->except(['show']);
