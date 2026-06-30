@@ -59,23 +59,25 @@
                         </label>
                         <label>
                             <span>CPF</span>
-                            <input name="lead_cpf" required maxlength="14" inputmode="numeric">
+                            <input name="lead_cpf" required maxlength="14" inputmode="numeric" placeholder="000.000.000-00" data-mask="cpf">
                         </label>
                         <label>
                             <span>Telefone</span>
-                            <input name="lead_phone" required maxlength="30" autocomplete="tel">
+                            <input name="lead_phone" required maxlength="15" autocomplete="tel" inputmode="numeric" placeholder="(00) 00000-0000" data-mask="phone">
                         </label>
                         <label>
                             <span>E-mail</span>
                             <input name="lead_email" type="email" maxlength="160" autocomplete="email">
                         </label>
-                        <label>
+                        <label class="betini-autocomplete-field">
                             <span>Marca</span>
-                            <input name="vehicle_brand" required maxlength="80">
+                            <input name="vehicle_brand" required maxlength="80" autocomplete="off" placeholder="Digite Chev, Volks, Fiat..." data-brand-input>
+                            <div class="betini-autocomplete-menu is-hidden" data-brand-menu></div>
                         </label>
-                        <label>
+                        <label class="betini-autocomplete-field">
                             <span>Modelo</span>
-                            <input name="vehicle_model" required maxlength="100">
+                            <input name="vehicle_model" required maxlength="100" autocomplete="off" placeholder="Selecione uma marca para sugerir modelos" data-model-input>
+                            <div class="betini-autocomplete-menu is-hidden" data-model-menu></div>
                         </label>
                         <label>
                             <span>Placa</span>
@@ -134,12 +136,134 @@
             const dateInput = document.querySelector('[data-scheduled-date]');
             const timeInput = document.querySelector('[data-scheduled-time]');
             const message = document.querySelector('[data-form-message]');
+            const cpfInput = document.querySelector('[data-mask="cpf"]');
+            const phoneInput = document.querySelector('[data-mask="phone"]');
+            const brandInput = document.querySelector('[data-brand-input]');
+            const modelInput = document.querySelector('[data-model-input]');
+            const brandMenu = document.querySelector('[data-brand-menu]');
+            const modelMenu = document.querySelector('[data-model-menu]');
             let viewedDate = new Date();
             let selectedDate = new Date();
+            let selectedBrandCode = '';
+            let isSelectingVehicleSuggestion = false;
 
             function keyFromDate(date) {
                 return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             }
+
+            function onlyDigits(value) {
+                return String(value || '').replace(/\D+/g, '');
+            }
+
+            function maskCpf(value) {
+                return onlyDigits(value)
+                    .slice(0, 11)
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            }
+
+            function maskPhone(value) {
+                return onlyDigits(value)
+                    .slice(0, 11)
+                    .replace(/(\d{2})(\d)/, '($1) $2')
+                    .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+            }
+
+            function normalizePlate(value) {
+                return String(value || '').replace(/[^a-zA-Z0-9]+/g, '').toUpperCase();
+            }
+
+            function debounce(callback, delay = 260) {
+                let timer = null;
+
+                return (...args) => {
+                    window.clearTimeout(timer);
+                    timer = window.setTimeout(() => callback(...args), delay);
+                };
+            }
+
+            function hideMenu(menu) {
+                menu.classList.add('is-hidden');
+                menu.innerHTML = '';
+            }
+
+            function renderVehicleSuggestions(menu, items, onSelect, loadingText = '') {
+                menu.innerHTML = '';
+
+                if (loadingText) {
+                    const loading = document.createElement('span');
+                    loading.textContent = loadingText;
+                    menu.appendChild(loading);
+                }
+
+                items.forEach((item) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.textContent = item.name;
+                    button.addEventListener('click', () => onSelect(item));
+                    menu.appendChild(button);
+                });
+
+                menu.classList.toggle('is-hidden', !loadingText && !items.length);
+            }
+
+            async function loadBrandSuggestions(searchTerm) {
+                if (String(searchTerm || '').trim().length < 2) {
+                    hideMenu(brandMenu);
+                    return;
+                }
+
+                renderVehicleSuggestions(brandMenu, [], null, 'Consultando marcas...');
+
+                const response = await fetch(`/api/landing/vehicle-catalog/brands?search=${encodeURIComponent(searchTerm)}`, {
+                    headers: { Accept: 'application/json' },
+                });
+
+                if (!response.ok) {
+                    hideMenu(brandMenu);
+                    return;
+                }
+
+                const payload = await response.json();
+                renderVehicleSuggestions(brandMenu, payload.data || [], (brand) => {
+                    isSelectingVehicleSuggestion = true;
+                    selectedBrandCode = brand.code;
+                    brandInput.value = brand.name;
+                    modelInput.value = '';
+                    modelInput.placeholder = 'Digite Onix, Corolla, Gol...';
+                    hideMenu(brandMenu);
+                    hideMenu(modelMenu);
+                });
+            }
+
+            async function loadModelSuggestions(searchTerm) {
+                if (!selectedBrandCode || String(searchTerm || '').trim().length < 2) {
+                    hideMenu(modelMenu);
+                    return;
+                }
+
+                renderVehicleSuggestions(modelMenu, [], null, 'Consultando modelos...');
+
+                const response = await fetch(`/api/landing/vehicle-catalog/models?brand_code=${encodeURIComponent(selectedBrandCode)}&search=${encodeURIComponent(searchTerm)}`, {
+                    headers: { Accept: 'application/json' },
+                });
+
+                if (!response.ok) {
+                    hideMenu(modelMenu);
+                    return;
+                }
+
+                const payload = await response.json();
+                renderVehicleSuggestions(modelMenu, payload.data || [], (model) => {
+                    isSelectingVehicleSuggestion = true;
+                    modelInput.value = model.name;
+                    hideMenu(modelMenu);
+                });
+            }
+
+            const debouncedLoadBrandSuggestions = debounce(loadBrandSuggestions);
+            const debouncedLoadModelSuggestions = debounce(loadModelSuggestions);
 
             function renderSlots() {
                 dateInput.value = keyFromDate(selectedDate);
@@ -192,6 +316,46 @@
                 renderCalendar();
             });
 
+            cpfInput.addEventListener('input', () => {
+                cpfInput.value = maskCpf(cpfInput.value);
+            });
+
+            phoneInput.addEventListener('input', () => {
+                phoneInput.value = maskPhone(phoneInput.value);
+            });
+
+            brandInput.addEventListener('input', () => {
+                if (isSelectingVehicleSuggestion) {
+                    isSelectingVehicleSuggestion = false;
+                    return;
+                }
+
+                selectedBrandCode = '';
+                modelInput.value = '';
+                modelInput.placeholder = 'Selecione uma marca para sugerir modelos';
+                hideMenu(modelMenu);
+                debouncedLoadBrandSuggestions(brandInput.value);
+            });
+
+            modelInput.addEventListener('input', () => {
+                if (isSelectingVehicleSuggestion) {
+                    isSelectingVehicleSuggestion = false;
+                    return;
+                }
+
+                debouncedLoadModelSuggestions(modelInput.value);
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!brandInput.contains(event.target) && !brandMenu.contains(event.target)) {
+                    hideMenu(brandMenu);
+                }
+
+                if (!modelInput.contains(event.target) && !modelMenu.contains(event.target)) {
+                    hideMenu(modelMenu);
+                }
+            });
+
             document.querySelector('[data-appointment-form]').addEventListener('submit', async (event) => {
                 event.preventDefault();
 
@@ -201,6 +365,10 @@
                 }
 
                 const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+                payload.lead_cpf = maskCpf(payload.lead_cpf);
+                payload.lead_phone = maskPhone(payload.lead_phone);
+                payload.vehicle_plate = normalizePlate(payload.vehicle_plate);
+
                 const response = await fetch('/api/landing/appointments', {
                     method: 'POST',
                     headers: {

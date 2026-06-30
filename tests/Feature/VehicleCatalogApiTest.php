@@ -43,6 +43,23 @@ class VehicleCatalogApiTest extends TestCase
             ->assertJsonPath('data.0.name', 'Chevrolet');
     }
 
+    public function test_public_landing_can_filter_vehicle_brands(): void
+    {
+        Http::fake([
+            'parallelum.com.br/fipe/api/v1/carros/marcas' => Http::response([
+                ['codigo' => '21', 'nome' => 'Fiat'],
+                ['codigo' => '23', 'nome' => 'GM - Chevrolet'],
+                ['codigo' => '59', 'nome' => 'Volkswagen'],
+            ]),
+        ]);
+
+        $this->getJson('/api/landing/vehicle-catalog/brands?search=volks')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.code', '59')
+            ->assertJsonPath('data.0.name', 'Volkswagen');
+    }
+
     public function test_models_can_be_filtered_by_brand_and_partial_name(): void
     {
         $this->authenticate();

@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('landing.home');
 Route::view('/maintenance', 'maintenance')->name('landing.maintenance');
 Route::post('/api/landing/appointments', [WorkshopAppointmentController::class, 'store'])->name('landing.appointments.store');
+Route::get('/api/landing/vehicle-catalog/brands', [VehicleCatalogController::class, 'brands'])->name('landing.vehicle-catalog.brands');
+Route::get('/api/landing/vehicle-catalog/models', [VehicleCatalogController::class, 'models'])->name('landing.vehicle-catalog.models');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
