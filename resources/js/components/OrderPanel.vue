@@ -16,11 +16,10 @@ defineProps({
 const statuses = ['Aberto', 'Em andamento', 'Concluido', 'Cancelado'];
 const emptyForm = {
     client_id: '',
-    service_id: '',
     payment_method: '',
     status: 'Aberto',
     observation: '',
-    service_total: '',
+    services: [],
     items: [],
 };
 
@@ -35,18 +34,30 @@ const isSaving = ref(false);
 const editingOrderId = ref(null);
 const errors = ref({});
 const message = ref(null);
-const form = reactive({ ...emptyForm, items: [] });
+const form = reactive({ ...emptyForm, services: [], items: [] });
 
 const formTitle = computed(() => (editingOrderId.value ? 'Editar ordem' : 'Nova ordem'));
-const selectedService = computed(() => services.value.find((service) => service.id === Number(form.service_id)));
-const servicePreview = computed(() => Number(form.service_total || selectedService.value?.base_price || 0));
+const servicePreview = computed(() => form.services.reduce((total, item) => total + Number(item.price || 0) * Number(item.quantity || 0), 0));
 const itemsPreview = computed(() => form.items.reduce((total, item) => total + Number(item.price || 0) * Number(item.quantity || 0), 0));
 const totalPreview = computed(() => servicePreview.value + itemsPreview.value);
 
 function resetForm() {
     editingOrderId.value = null;
-    Object.assign(form, { ...emptyForm, items: [] });
+    Object.assign(form, { ...emptyForm, services: [], items: [] });
     errors.value = {};
+}
+
+function addService() {
+    form.services.push({ service_id: '', quantity: 1, price: '' });
+}
+
+function removeService(index) {
+    form.services.splice(index, 1);
+}
+
+function fillServicePrice(item) {
+    const service = services.value.find((service) => service.id === Number(item.service_id));
+    item.price = service?.base_price ?? '';
 }
 
 function addItem() {
@@ -66,11 +77,14 @@ function fillForm(order) {
     editingOrderId.value = order.id;
     Object.assign(form, {
         client_id: order.client_id ?? '',
-        service_id: order.service_id ?? '',
         payment_method: order.payment_method ?? '',
         status: order.status ?? 'Aberto',
         observation: order.observation ?? '',
-        service_total: order.service_total ?? '',
+        services: (order.services?.length ? order.services : (order.service_id ? [{ service_id: order.service_id, quantity: 1, price: order.service_total }] : [])).map((item) => ({
+            service_id: item.service_id,
+            quantity: item.quantity ?? 1,
+            price: item.price,
+        })),
         items: (order.items ?? []).map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
@@ -131,8 +145,13 @@ async function saveOrder() {
             body: jsonBody({
                 ...form,
                 client_id: Number(form.client_id),
-                service_id: form.service_id === '' ? null : Number(form.service_id),
-                service_total: form.service_total === '' ? null : Number(form.service_total),
+                services: form.services
+                    .filter((item) => item.service_id)
+                    .map((item) => ({
+                        service_id: Number(item.service_id),
+                        quantity: Number(item.quantity),
+                        price: item.price === '' ? null : Number(item.price),
+                    })),
                 items: form.items
                     .filter((item) => item.product_id)
                     .map((item) => ({
@@ -223,32 +242,49 @@ onMounted(async () => {
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label class="block">
-                            <span class="text-sm font-bold text-slate-700">Servico</span>
-                            <select v-model="form.service_id" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-red-600">
-                                <option value="">Sem servico</option>
-                                <option v-for="service in services" :key="service.id" :value="service.id">{{ service.name }}</option>
-                            </select>
-                            <small v-if="errors.service_id" class="mt-1 block text-red-700">{{ errors.service_id[0] }}</small>
-                        </label>
-                        <label class="block">
                             <span class="text-sm font-bold text-slate-700">Status</span>
                             <select v-model="form.status" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-red-600">
                                 <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
                             </select>
                             <small v-if="errors.status" class="mt-1 block text-red-700">{{ errors.status[0] }}</small>
                         </label>
-                    </div>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
                         <label class="block">
                             <span class="text-sm font-bold text-slate-700">Pagamento</span>
                             <input v-model="form.payment_method" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-red-600" placeholder="Pix, Cartao, Dinheiro" type="text">
                         </label>
-                        <label class="block">
-                            <span class="text-sm font-bold text-slate-700">Valor servico</span>
-                            <input v-model="form.service_total" class="mt-2 w-full rounded-2xl border border-black/10 px-4 py-3 outline-none focus:border-red-600" min="0" step="0.01" type="number">
-                            <small v-if="errors.service_total" class="mt-1 block text-red-700">{{ errors.service_total[0] }}</small>
-                        </label>
+                    </div>
+
+                    <div class="min-w-0 rounded-3xl border border-black/10 bg-white p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <strong>Servicos da OS</strong>
+                            <button class="rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white" type="button" @click="addService">Adicionar servico</button>
+                        </div>
+                        <div class="mt-4 space-y-3">
+                            <div v-if="!form.services.length" class="text-sm text-slate-500">Nenhum servico adicionado.</div>
+                            <div v-for="(item, index) in form.services" :key="index" class="grid min-w-0 gap-3 rounded-2xl bg-[#faf8f2] p-3">
+                                <label class="block min-w-0">
+                                    <span class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Servico</span>
+                                    <select v-model="item.service_id" class="mt-1 w-full min-w-0 rounded-xl border border-black/10 px-3 py-2 outline-none" @change="fillServicePrice(item)">
+                                        <option value="">Selecione um servico</option>
+                                        <option v-for="service in services" :key="service.id" :value="service.id">{{ service.name }}</option>
+                                    </select>
+                                    <small v-if="errors[`services.${index}.service_id`]" class="mt-1 block text-red-700">{{ errors[`services.${index}.service_id`][0] }}</small>
+                                </label>
+                                <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px]">
+                                    <label class="block min-w-0">
+                                        <span class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Quantidade</span>
+                                        <input v-model="item.quantity" class="mt-1 w-full min-w-0 rounded-xl border border-black/10 px-3 py-2 outline-none" min="1" type="number">
+                                        <small v-if="errors[`services.${index}.quantity`]" class="mt-1 block text-red-700">{{ errors[`services.${index}.quantity`][0] }}</small>
+                                    </label>
+                                    <label class="block min-w-0">
+                                        <span class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Preco</span>
+                                        <input v-model="item.price" class="mt-1 w-full min-w-0 rounded-xl border border-black/10 px-3 py-2 outline-none" min="0" step="0.01" type="number">
+                                        <small v-if="errors[`services.${index}.price`]" class="mt-1 block text-red-700">{{ errors[`services.${index}.price`][0] }}</small>
+                                    </label>
+                                    <button class="mt-5 rounded-xl bg-red-50 px-3 py-2 font-bold text-red-700" type="button" aria-label="Remover servico" @click="removeService(index)">X</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="min-w-0 rounded-3xl border border-black/10 bg-white p-4">
@@ -323,7 +359,7 @@ onMounted(async () => {
                         <tr v-for="order in orders" v-else :key="order.id" class="border-t border-black/10">
                             <td class="px-5 py-4 font-black">#{{ order.id }}</td>
                             <td class="px-5 py-4">{{ order.client?.name ?? '-' }}</td>
-                            <td class="px-5 py-4">{{ order.service?.name ?? '-' }}</td>
+                            <td class="px-5 py-4">{{ order.services?.length ? order.services.map((item) => item.service?.name).filter(Boolean).join(', ') : (order.service?.name ?? '-') }}</td>
                             <td class="px-5 py-4"><span class="rounded-full bg-red-50 px-3 py-1 font-bold text-red-800">{{ order.status }}</span></td>
                             <td class="px-5 py-4 text-right font-black">{{ moneyFormatter.format(order.total ?? 0) }}</td>
                             <td class="px-5 py-4 text-right">

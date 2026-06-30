@@ -43,14 +43,18 @@ class OrderApiTest extends TestCase
     public function test_order_can_be_created_with_calculated_totals(): void
     {
         $client = Client::create(['name' => 'Cliente OS', 'cpf' => '12345678901']);
-        $service = Service::create(['name' => 'Troca de oleo', 'base_price' => 120]);
+        $oilChange = Service::create(['name' => 'Troca de oleo', 'base_price' => 120]);
+        $alignment = Service::create(['name' => 'Alinhamento', 'base_price' => 160]);
         $product = Product::create(['name' => 'Filtro', 'price' => 30]);
 
         $this->postJson('/api/workshop/orders', [
             'client_id' => $client->id,
-            'service_id' => $service->id,
             'status' => 'Aberto',
             'payment_method' => 'Pix',
+            'services' => [
+                ['service_id' => $oilChange->id, 'quantity' => 1],
+                ['service_id' => $alignment->id, 'quantity' => 2, 'price' => 150],
+            ],
             'items' => [
                 ['product_id' => $product->id, 'quantity' => 2],
             ],
@@ -58,13 +62,28 @@ class OrderApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('client.name', 'Cliente OS')
             ->assertJsonPath('service.name', 'Troca de oleo')
+            ->assertJsonPath('services.0.service.name', 'Troca de oleo')
+            ->assertJsonPath('services.1.service.name', 'Alinhamento')
             ->assertJsonPath('items.0.product.name', 'Filtro');
 
         $this->assertDatabaseHas('orders', [
             'client_id' => $client->id,
-            'service_total' => 120,
+            'service_id' => $oilChange->id,
+            'service_total' => 420,
             'items_total' => 60,
-            'total' => 180,
+            'total' => 480,
+        ]);
+        $this->assertDatabaseHas('order_services', [
+            'service_id' => $oilChange->id,
+            'price' => 120,
+            'quantity' => 1,
+            'subtotal' => 120,
+        ]);
+        $this->assertDatabaseHas('order_services', [
+            'service_id' => $alignment->id,
+            'price' => 150,
+            'quantity' => 2,
+            'subtotal' => 300,
         ]);
         $this->assertDatabaseHas('order_items', [
             'product_id' => $product->id,
@@ -79,12 +98,15 @@ class OrderApiTest extends TestCase
         $this->postJson('/api/workshop/orders', [
             'client_id' => 999,
             'status' => 'Invalido',
+            'services' => [
+                ['service_id' => 999, 'quantity' => 0],
+            ],
             'items' => [
                 ['product_id' => 999, 'quantity' => 0],
             ],
         ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['client_id', 'status', 'items.0.product_id', 'items.0.quantity']);
+            ->assertJsonValidationErrors(['client_id', 'status', 'services.0.service_id', 'services.0.quantity', 'items.0.product_id', 'items.0.quantity']);
     }
 
     public function test_order_can_be_updated_and_items_are_synced(): void
@@ -102,9 +124,10 @@ class OrderApiTest extends TestCase
 
         $this->putJson("/api/workshop/orders/{$order->id}", [
             'client_id' => $client->id,
-            'service_id' => $service->id,
             'status' => 'Em andamento',
-            'service_total' => 90,
+            'services' => [
+                ['service_id' => $service->id, 'quantity' => 2, 'price' => 90],
+            ],
             'items' => [
                 ['product_id' => $product->id, 'quantity' => 3, 'price' => 110],
             ],
@@ -115,9 +138,17 @@ class OrderApiTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
             'status' => 'Em andamento',
-            'service_total' => 90,
+            'service_id' => $service->id,
+            'service_total' => 180,
             'items_total' => 330,
-            'total' => 420,
+            'total' => 510,
+        ]);
+        $this->assertDatabaseHas('order_services', [
+            'order_id' => $order->id,
+            'service_id' => $service->id,
+            'price' => 90,
+            'quantity' => 2,
+            'subtotal' => 180,
         ]);
         $this->assertDatabaseHas('order_items', [
             'order_id' => $order->id,

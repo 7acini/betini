@@ -38,14 +38,14 @@ class WorkshopDashboardController extends Controller
             ],
             'ordersByStatus' => $ordersByStatus,
             'recentOrders' => Order::query()
-                ->with(['client:id,name', 'service:id,name'])
+                ->with(['client:id,name', 'service:id,name', 'services.service:id,name'])
                 ->latest()
                 ->limit(5)
                 ->get(['id', 'client_id', 'service_id', 'status', 'total', 'created_at'])
                 ->map(fn (Order $order): array => [
                     'id' => $order->id,
                     'client' => $order->client?->name,
-                    'service' => $order->service?->name,
+                    'service' => $order->services->pluck('service.name')->filter()->join(', ') ?: $order->service?->name,
                     'status' => $order->status,
                     'total' => $order->total,
                     'createdAt' => $order->created_at?->toDateString(),

@@ -19,12 +19,13 @@ class OrderController extends Controller
         $perPage = min(max((int) $request->integer('per_page', 10), 1), 100);
 
         $orders = Order::query()
-            ->with(['client:id,name,cpf', 'service:id,name', 'items.product:id,name'])
+            ->with(['client:id,name,cpf', 'service:id,name', 'services.service:id,name', 'items.product:id,name'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where('status', 'like', "%{$search}%")
                     ->orWhere('payment_method', 'like', "%{$search}%")
                     ->orWhereHas('client', fn ($query) => $query->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('service', fn ($query) => $query->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('service', fn ($query) => $query->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('services.service', fn ($query) => $query->where('name', 'like', "%{$search}%"));
             })
             ->latest()
             ->paginate($perPage)
@@ -59,37 +60,66 @@ class OrderController extends Controller
     private function persistOrder(Order $order, array $data): Order
     {
         $items = $data['items'] ?? [];
-        unset($data['items']);
+        $services = $data['services'] ?? $this->legacyServicePayload($data);
+        unset($data['items'], $data['services']);
 
-        $serviceTotal = $this->resolveServiceTotal($data);
+        $servicesPayload = $this->buildServicesPayload($services);
+        $serviceTotal = array_sum(array_column($servicesPayload, 'subtotal'));
         $itemsPayload = $this->buildItemsPayload($items);
         $itemsTotal = array_sum(array_column($itemsPayload, 'subtotal'));
+        $firstServiceId = $servicesPayload[0]['service_id'] ?? ($data['service_id'] ?? null);
 
         $order->fill([
             ...$data,
+            'service_id' => $firstServiceId,
             'service_total' => $serviceTotal,
             'items_total' => $itemsTotal,
             'total' => $serviceTotal + $itemsTotal,
         ]);
         $order->save();
 
+        $order->services()->delete();
+        $order->services()->createMany($servicesPayload);
+
         $order->items()->delete();
         $order->items()->createMany($itemsPayload);
 
-        return $order->refresh()->load(['client:id,name,cpf', 'service:id,name', 'items.product:id,name']);
+        return $order->refresh()->load(['client:id,name,cpf', 'service:id,name', 'services.service:id,name', 'items.product:id,name']);
     }
 
-    private function resolveServiceTotal(array $data): float
+    private function legacyServicePayload(array $data): array
     {
-        if (isset($data['service_total'])) {
-            return (float) $data['service_total'];
-        }
-
         if (empty($data['service_id'])) {
-            return 0.0;
+            return [];
         }
 
-        return (float) (Service::find($data['service_id'])?->base_price ?? 0);
+        return [[
+            'service_id' => $data['service_id'],
+            'quantity' => 1,
+            'price' => $data['service_total'] ?? null,
+        ]];
+    }
+
+    private function buildServicesPayload(array $services): array
+    {
+        $serviceIds = collect($services)->pluck('service_id')->filter()->unique();
+        $availableServices = Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+
+        return collect($services)
+            ->map(function (array $item) use ($availableServices): array {
+                $service = $availableServices->get($item['service_id']);
+                $price = isset($item['price']) ? (float) $item['price'] : (float) ($service?->base_price ?? 0);
+                $quantity = (int) $item['quantity'];
+
+                return [
+                    'service_id' => $item['service_id'],
+                    'price' => $price,
+                    'quantity' => $quantity,
+                    'subtotal' => $price * $quantity,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function buildItemsPayload(array $items): array
