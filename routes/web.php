@@ -9,7 +9,12 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleCatalogController;
 use App\Http\Controllers\WorkshopDashboardController;
+use App\Http\Controllers\WorkshopAppointmentController;
 use Illuminate\Support\Facades\Route;
+
+Route::view('/', 'welcome')->name('landing.home');
+Route::view('/maintenance', 'maintenance')->name('landing.maintenance');
+Route::post('/api/landing/appointments', [WorkshopAppointmentController::class, 'store'])->name('landing.appointments.store');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -28,8 +33,11 @@ Route::middleware('auth')->group(function (): void {
     Route::apiResource('/api/workshop/products', ProductController::class)->except(['show']);
     Route::apiResource('/api/workshop/services', ServiceController::class)->except(['show']);
     Route::apiResource('/api/workshop/vehicles', VehicleController::class)->except(['show']);
+    Route::get('/api/workshop/appointments', [WorkshopAppointmentController::class, 'index'])->name('appointments.index');
+    Route::patch('/api/workshop/appointments/{appointment}', [WorkshopAppointmentController::class, 'update'])->name('appointments.update');
+    Route::post('/api/workshop/appointments/{appointment}/convert-to-order', [WorkshopAppointmentController::class, 'convertToOrder'])->name('appointments.convert-to-order');
 
-    Route::get('/', function () {
+    Route::get('/portal', function () {
         return view('app');
-    });
+    })->name('portal');
 });

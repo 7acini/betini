@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import ClientPanel from './ClientPanel.vue';
+import AppointmentPanel from './AppointmentPanel.vue';
 import OrderPanel from './OrderPanel.vue';
 import ProviderPanel from './ProviderPanel.vue';
 import ProductPanel from './ProductPanel.vue';
@@ -34,6 +35,7 @@ const modules = [
     { key: 'fornecedores', label: 'Fornecedores', icon: 'truck', eyebrow: 'Suprimentos', title: 'Fornecedores e parceiros', component: ProviderPanel },
     { key: 'produtos', label: 'Produtos', icon: 'box', eyebrow: 'Estoque', title: 'Produtos e pecas', component: ProductPanel },
     { key: 'servicos', label: 'Servicos', icon: 'tool', eyebrow: 'Catalogo', title: 'Servicos da oficina', component: ServicePanel },
+    { key: 'agendamentos', label: 'Agendamentos', icon: 'calendar', eyebrow: 'Agenda', title: 'Agendamentos da oficina', component: AppointmentPanel },
     { key: 'ordens', label: 'Ordens', icon: 'clipboard', eyebrow: 'Operacao', title: 'Ordens de servico', component: OrderPanel },
 ];
 
@@ -87,7 +89,7 @@ onMounted(loadDashboard);
                 <span class="betini-sidebar__logo"><img :src="logoUrl" alt="Betini Centro Automotivo"></span>
             </a>
 
-            <nav class="betini-sidebar__nav" aria-label="Modulos do ERP">
+            <nav class="betini-sidebar__nav" aria-label="Modulos do Portal">
                 <button
                     v-for="module in modules"
                     :key="module.key"
@@ -104,6 +106,7 @@ onMounted(loadDashboard);
                         <svg v-else-if="module.icon === 'truck'" viewBox="0 0 24 24"><path d="M3 5h11v9h1.2l1.7-4H21l2 3.5V18h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3V5Zm2 2v8.1A2 2 0 0 1 9 16h7.3l1.7-4h1.8l1.2 2.1V16h-1a2 2 0 0 1-4 0h-2V7H5Z" /></svg>
                         <svg v-else-if="module.icon === 'box'" viewBox="0 0 24 24"><path d="m12 2 9 4.5v11L12 22l-9-4.5v-11L12 2Zm0 2.2L6.2 7 12 9.8 17.8 7 12 4.2ZM5 8.7v7.6l6 3v-7.6l-6-3Zm8 10.6 6-3V8.7l-6 3v7.6Z" /></svg>
                         <svg v-else-if="module.icon === 'tool'" viewBox="0 0 24 24"><path d="M21 6.5a6.5 6.5 0 0 1-8.7 6.1l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9A6.5 6.5 0 0 1 17.5 1l-4 4 1.5 4 4 1.5 4-4Z" /></svg>
+                        <svg v-else-if="module.icon === 'calendar'" viewBox="0 0 24 24"><path d="M7 2h2v3h6V2h2v3h3a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3V2Zm13 8H4v10h16V10ZM4 8h16V7H4v1Zm3 5h3v3H7v-3Zm5 0h3v3h-3v-3Z" /></svg>
                         <svg v-else viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-3-7 3V5a2 2 0 0 1 2-2Zm2 4v2h6V7H9Zm0 4v2h6v-2H9Z" /></svg>
                     </span>
                     <strong>{{ module.label }}</strong>
@@ -165,7 +168,7 @@ onMounted(loadDashboard);
                         <div class="betini-card__head">
                             <div>
                                 <p>Modulos</p>
-                                <h3>Nucleo do ERP</h3>
+                                <h3>Nucleo do Portal</h3>
                             </div>
                         </div>
                         <div class="betini-module-grid">
@@ -176,6 +179,7 @@ onMounted(loadDashboard);
                                     <svg v-else-if="module.icon === 'truck'" viewBox="0 0 24 24"><path d="M3 5h11v9h1.2l1.7-4H21l2 3.5V18h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3V5Zm2 2v8.1A2 2 0 0 1 9 16h7.3l1.7-4h1.8l1.2 2.1V16h-1a2 2 0 0 1-4 0h-2V7H5Z" /></svg>
                                     <svg v-else-if="module.icon === 'box'" viewBox="0 0 24 24"><path d="m12 2 9 4.5v11L12 22l-9-4.5v-11L12 2Zm0 2.2L6.2 7 12 9.8 17.8 7 12 4.2ZM5 8.7v7.6l6 3v-7.6l-6-3Zm8 10.6 6-3V8.7l-6 3v7.6Z" /></svg>
                                     <svg v-else-if="module.icon === 'tool'" viewBox="0 0 24 24"><path d="M21 6.5a6.5 6.5 0 0 1-8.7 6.1l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9A6.5 6.5 0 0 1 17.5 1l-4 4 1.5 4 4 1.5 4-4Z" /></svg>
+                                    <svg v-else-if="module.icon === 'calendar'" viewBox="0 0 24 24"><path d="M7 2h2v3h6V2h2v3h3a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3V2Zm13 8H4v10h16V10ZM4 8h16V7H4v1Zm3 5h3v3H7v-3Zm5 0h3v3h-3v-3Z" /></svg>
                                     <svg v-else viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-3-7 3V5a2 2 0 0 1 2-2Zm2 4v2h6V7H9Zm0 4v2h6v-2H9Z" /></svg>
                                 </span>
                                 <strong>{{ module.label }}</strong>
