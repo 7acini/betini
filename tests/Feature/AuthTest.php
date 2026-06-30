@@ -14,7 +14,12 @@ class AuthTest extends TestCase
 
     public function test_guest_is_redirected_to_login(): void
     {
+        $this->withoutVite();
+
         $this->get('/')
+            ->assertOk();
+
+        $this->get('/portal')
             ->assertRedirect('/login');
     }
 
@@ -37,7 +42,7 @@ class AuthTest extends TestCase
             'email' => $user->email,
             'password' => 'secret-password',
         ])
-            ->assertRedirect('/');
+            ->assertRedirect('/portal');
 
         $this->assertAuthenticatedAs($user);
 

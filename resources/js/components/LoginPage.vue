@@ -15,7 +15,7 @@ const logoUrl = '/images/betini-logo.png';
                 <img :src="logoUrl" alt="Betini Centro Automotivo">
             </div>
             <div>
-                <p>ERP da oficina</p>
+                <p>Portal da oficina</p>
                 <h1>Controle operacional com a identidade da Betini.</h1>
                 <span>Clientes, veiculos, produtos, servicos e ordens em uma rotina mais organizada para o time.</span>
             </div>
@@ -25,7 +25,7 @@ const logoUrl = '/images/betini-logo.png';
             <div class="betini-login-card__head">
                 <div>
                     <p>Acesso seguro</p>
-                    <h2>Entrar no ERP</h2>
+                    <h2>Entrar no Portal</h2>
                 </div>
             </div>
 
