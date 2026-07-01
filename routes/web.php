@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\GoogleBusinessProfileReviewController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ProductController;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('landing.home');
 Route::view('/maintenance', 'maintenance')->name('landing.maintenance');
+Route::view('/contact', 'contact')->name('landing.contact');
+Route::get('/api/landing/google-reviews', GoogleBusinessProfileReviewController::class)->name('landing.google-reviews');
 Route::post('/api/landing/appointments', [WorkshopAppointmentController::class, 'store'])->name('landing.appointments.store');
 Route::get('/api/landing/vehicle-catalog/brands', [VehicleCatalogController::class, 'brands'])->name('landing.vehicle-catalog.brands');
 Route::get('/api/landing/vehicle-catalog/models', [VehicleCatalogController::class, 'models'])->name('landing.vehicle-catalog.models');

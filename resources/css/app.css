@@ -382,6 +382,65 @@ img { max-width: 100%; display: block; }
     text-decoration: none;
 }
 .site-nav a:hover { color: #ffdbde; }
+.appointment-notice {
+    position: fixed;
+    top: 82px;
+    left: 50%;
+    z-index: 80;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    width: min(520px, calc(100% - 28px));
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: #fff;
+    padding: 14px 14px 14px 16px;
+    box-shadow: 0 20px 48px rgba(17, 18, 22, .22);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -14px);
+    transition: opacity .18s ease, transform .18s ease;
+}
+.appointment-notice.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+.appointment-notice.is-error {
+    border-color: #f0b8bc;
+    background: #fff5f5;
+    color: #7f1117;
+}
+.appointment-notice.is-success {
+    border-color: #a9e5c4;
+    background: #f0fff6;
+    color: #105f38;
+}
+.appointment-notice strong,
+.appointment-notice span {
+    grid-column: 1;
+}
+.appointment-notice strong {
+    font-size: .92rem;
+    font-weight: 950;
+}
+.appointment-notice span {
+    line-height: 1.45;
+}
+.appointment-notice button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(17, 18, 22, .08);
+    color: currentColor;
+    font-size: 1.2rem;
+    font-weight: 950;
+    line-height: 1;
+}
 .site-hero {
     position: relative;
     min-height: min(720px, calc(100vh - 72px));
@@ -437,7 +496,7 @@ img { max-width: 100%; display: block; }
 .site-hero a,
 .maintenance-hero a,
 .service-band a,
-.site-footer a {
+.site-footer__action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -558,16 +617,45 @@ img { max-width: 100%; display: block; }
     line-height: 1.12;
 }
 .site-footer {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(170px, auto);
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 24px clamp(18px, 4vw, 54px);
+    gap: 22px;
+    padding: 26px max(18px, calc((100vw - 1040px) / 2));
     background: #111;
     color: #fff;
-    font-weight: 900;
 }
-.site-footer a { margin: 0; min-height: 42px; }
+.site-footer__brand {
+    display: grid;
+    gap: 4px;
+}
+.site-footer__brand strong {
+    font-size: 1rem;
+    font-weight: 950;
+}
+.site-footer__brand span {
+    color: rgba(255,255,255,.68);
+    font-size: .88rem;
+    font-weight: 700;
+}
+.site-footer__links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 2vw, 24px);
+}
+.site-footer__links a {
+    color: rgba(255,255,255,.76);
+    font-size: .9rem;
+    font-weight: 850;
+    text-decoration: none;
+}
+.site-footer__links a:hover { color: #fff; }
+.site-footer__action {
+    min-height: 42px;
+    margin: 0;
+    white-space: nowrap;
+}
 .maintenance-hero {
     min-height: min(660px, 72vh);
     display: grid;
@@ -577,6 +665,50 @@ img { max-width: 100%; display: block; }
         linear-gradient(90deg, rgba(0,0,0,.82), rgba(0,0,0,.38) 56%, rgba(0,0,0,.08)),
         var(--photo) center / cover;
     color: #fff;
+}
+.contact-hero {
+    min-height: min(560px, 64vh);
+    display: grid;
+    align-items: end;
+    padding: clamp(92px, 12vw, 140px) clamp(18px, 5vw, 64px) clamp(56px, 8vw, 84px);
+    background:
+        linear-gradient(90deg, rgba(0,0,0,.82), rgba(0,0,0,.42) 58%, rgba(0,0,0,.1)),
+        var(--photo) center / cover;
+    color: #fff;
+}
+.contact-hero div {
+    max-width: 720px;
+}
+.contact-hero p,
+.contact-copy p,
+.contact-card p,
+.contact-hours p {
+    margin: 0 0 10px;
+    color: #ff454f;
+    font-size: .78rem;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.contact-hero h1 {
+    margin: 0;
+    font-size: clamp(2.25rem, 5vw, 4.9rem);
+    line-height: .98;
+    letter-spacing: 0;
+}
+.contact-hero a,
+.contact-card a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-top: 22px;
+    border-radius: 8px;
+    background: var(--bt-red);
+    padding: 0 18px;
+    color: #fff;
+    font-weight: 950;
+    text-decoration: none;
 }
 .maintenance-services {
     display: grid;
@@ -612,6 +744,61 @@ img { max-width: 100%; display: block; }
     margin-top: 14px;
     color: #565960;
     line-height: 1.7;
+}
+.contact-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    gap: 18px;
+    align-items: start;
+}
+.contact-copy {
+    grid-column: 1 / -1;
+}
+.contact-copy h2,
+.contact-hours h2 {
+    max-width: 700px;
+    margin: 0;
+    font-size: clamp(1.85rem, 3.4vw, 3.5rem);
+    line-height: 1;
+    letter-spacing: 0;
+}
+.contact-copy span,
+.contact-hours span {
+    display: block;
+    max-width: 700px;
+    margin-top: 14px;
+    color: #565960;
+    line-height: 1.7;
+}
+.contact-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.contact-card,
+.contact-hours {
+    border: 1px solid var(--bt-line);
+    border-radius: 8px;
+    background: #fff;
+    padding: clamp(18px, 2.5vw, 24px);
+    box-shadow: var(--bt-shadow);
+}
+.contact-card h3 {
+    min-height: 58px;
+    margin: 0;
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    line-height: 1.12;
+}
+.contact-hours {
+    position: sticky;
+    top: 96px;
+}
+.contact-hours strong {
+    display: block;
+    margin-top: 18px;
+    color: var(--bt-red);
+    font-size: 1.65rem;
+    line-height: 1.1;
 }
 .lead-form,
 .public-calendar {
@@ -1077,13 +1264,16 @@ img { max-width: 100%; display: block; }
     .betini-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .betini-calendar-year { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .scheduling-shell { grid-template-columns: 1fr; }
+    .contact-layout { grid-template-columns: 1fr; }
     .public-calendar,
+    .contact-hours,
     .betini-schedule-detail { position: static; }
 }
 
 @media (max-width: 980px) {
     .content-grid,
-    .maintenance-services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .maintenance-services,
+    .contact-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .lead-form__grid { grid-template-columns: 1fr; }
 }
 
@@ -1122,13 +1312,27 @@ img { max-width: 100%; display: block; }
         scrollbar-width: none;
     }
     .site-nav::-webkit-scrollbar { display: none; }
+    .appointment-notice {
+        top: 72px;
+        width: calc(100% - 20px);
+    }
     .site-hero,
-    .maintenance-hero { min-height: 560px; }
+    .maintenance-hero,
+    .contact-hero { min-height: 560px; }
     .site-section__head,
-    .service-band,
-    .site-footer { align-items: flex-start; flex-direction: column; }
+    .service-band { align-items: flex-start; flex-direction: column; }
+    .site-footer {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
+    .site-footer__links {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
     .content-grid,
-    .maintenance-services { grid-template-columns: 1fr; }
+    .maintenance-services,
+    .contact-card-grid { grid-template-columns: 1fr; }
     .public-calendar__slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -1139,10 +1343,12 @@ img { max-width: 100%; display: block; }
     .betini-schedule-legend { grid-template-columns: 1fr; }
     .site-hero h1,
     .site-hero h2,
-    .maintenance-hero h1 { font-size: clamp(2rem, 11vw, 3.45rem); }
+    .maintenance-hero h1,
+    .contact-hero h1 { font-size: clamp(2rem, 11vw, 3.45rem); }
     .site-section { width: min(100% - 24px, 520px); padding: 36px 0; }
     .site-hero__slide,
-    .maintenance-hero { padding-inline: 16px; }
+    .maintenance-hero,
+    .contact-hero { padding-inline: 16px; }
     .review-rail { grid-auto-columns: minmax(238px, 88vw); }
     .lead-form,
     .public-calendar { padding: 14px; }

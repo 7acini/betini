@@ -32,6 +32,17 @@ return [
         'base_url' => env('FIPE_API_BASE_URL', 'https://parallelum.com.br/fipe/api/v1'),
     ],
 
+    'google_business_profile' => [
+        'client_id' => env('GOOGLE_BUSINESS_PROFILE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_BUSINESS_PROFILE_CLIENT_SECRET'),
+        'refresh_token' => env('GOOGLE_BUSINESS_PROFILE_REFRESH_TOKEN'),
+        'account_id' => env('GOOGLE_BUSINESS_PROFILE_ACCOUNT_ID'),
+        'location_id' => env('GOOGLE_BUSINESS_PROFILE_LOCATION_ID'),
+        'reviews_limit' => (int) env('GOOGLE_BUSINESS_PROFILE_REVIEWS_LIMIT', 10),
+        'base_url' => env('GOOGLE_BUSINESS_PROFILE_BASE_URL', 'https://mybusiness.googleapis.com/v4'),
+        'token_url' => env('GOOGLE_OAUTH_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

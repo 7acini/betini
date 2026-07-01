@@ -8,17 +8,13 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="betini-site">
-        <header class="site-header">
-            <a class="site-logo" href="/" aria-label="Betini Centro Automotivo">
-                <img src="/images/betini-logo.png" alt="Betini Centro Automotivo">
-            </a>
-            <nav class="site-nav" aria-label="Navegacao principal">
-                <a href="/">Inicio</a>
-                <a href="/maintenance">Manutencao</a>
-                <a href="#scheduling">Agendamento</a>
-                <a href="/portal">Portal</a>
-            </nav>
-        </header>
+        @include('partials.site-header')
+
+        <div class="appointment-notice" role="status" aria-live="polite" data-appointment-notice>
+            <strong data-notice-title></strong>
+            <span data-notice-message></span>
+            <button type="button" aria-label="Fechar aviso" data-notice-close>×</button>
+        </div>
 
         <main>
             <section class="maintenance-hero" style="--photo: url('https://images.unsplash.com/photo-1504222490345-c075b6008014?auto=format&fit=crop&w=1800&q=82')">
@@ -121,10 +117,7 @@
             </section>
         </main>
 
-        <footer class="site-footer">
-            <span>Betini Centro Automotivo</span>
-            <a href="/portal">Acessar Portal</a>
-        </footer>
+        @include('partials.site-footer')
 
         <script>
             const csrf = document.querySelector('meta[name="csrf-token"]').content;
@@ -142,10 +135,15 @@
             const modelInput = document.querySelector('[data-model-input]');
             const brandMenu = document.querySelector('[data-brand-menu]');
             const modelMenu = document.querySelector('[data-model-menu]');
+            const notice = document.querySelector('[data-appointment-notice]');
+            const noticeTitle = document.querySelector('[data-notice-title]');
+            const noticeMessage = document.querySelector('[data-notice-message]');
+            const noticeClose = document.querySelector('[data-notice-close]');
             let viewedDate = new Date();
             let selectedDate = new Date();
             let selectedBrandCode = '';
             let isSelectingVehicleSuggestion = false;
+            let noticeTimer = null;
 
             function keyFromDate(date) {
                 return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -181,6 +179,28 @@
                     window.clearTimeout(timer);
                     timer = window.setTimeout(() => callback(...args), delay);
                 };
+            }
+
+            function hideAppointmentNotice() {
+                notice.classList.remove('is-visible', 'is-success', 'is-error');
+                window.clearTimeout(noticeTimer);
+            }
+
+            function showAppointmentNotice(type, titleText, messageText) {
+                window.clearTimeout(noticeTimer);
+                noticeTitle.textContent = titleText;
+                noticeMessage.textContent = messageText;
+                notice.classList.remove('is-success', 'is-error');
+                notice.classList.add('is-visible', `is-${type}`);
+                notice.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+                noticeTimer = window.setTimeout(hideAppointmentNotice, type === 'error' ? 9000 : 6500);
+            }
+
+            function validationMessageFromPayload(payload) {
+                const firstError = Object.values(payload.errors || {})[0]?.[0];
+
+                return firstError || payload.message || 'Revise os dados informados e tente novamente.';
             }
 
             function hideMenu(menu) {
@@ -275,6 +295,8 @@
                     button.className = timeInput.value === time ? 'is-selected' : '';
                     button.addEventListener('click', () => {
                         timeInput.value = time;
+                        message.value = '';
+                        hideAppointmentNotice();
                         renderSlots();
                     });
                     slots.appendChild(button);
@@ -315,6 +337,8 @@
                 viewedDate = new Date(viewedDate.getFullYear(), viewedDate.getMonth() + 1, 1);
                 renderCalendar();
             });
+
+            noticeClose.addEventListener('click', hideAppointmentNotice);
 
             cpfInput.addEventListener('input', () => {
                 cpfInput.value = maskCpf(cpfInput.value);
@@ -360,7 +384,9 @@
                 event.preventDefault();
 
                 if (!timeInput.value) {
-                    message.value = 'Escolha um horario para continuar.';
+                    const warning = 'Escolha uma data e um horario disponivel no calendario para continuar.';
+                    message.value = warning;
+                    showAppointmentNotice('error', 'Horario pendente', warning);
                     return;
                 }
 
@@ -380,7 +406,16 @@
                 });
 
                 const data = await response.json();
-                message.value = response.ok ? 'Agendamento solicitado. A equipe Betini fara a confirmacao.' : (data.message || 'Nao foi possivel agendar.');
+                const responseMessage = response.ok
+                    ? 'Agendamento solicitado. A equipe Betini fara a confirmacao.'
+                    : validationMessageFromPayload(data);
+
+                message.value = responseMessage;
+                showAppointmentNotice(
+                    response.ok ? 'success' : 'error',
+                    response.ok ? 'Solicitacao enviada' : 'Nao foi possivel agendar',
+                    responseMessage,
+                );
 
                 if (response.ok) {
                     event.currentTarget.reset();

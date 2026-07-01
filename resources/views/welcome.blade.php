@@ -8,18 +8,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="betini-site">
-        <header class="site-header">
-            <a class="site-logo" href="/" aria-label="Betini Centro Automotivo">
-                <img src="/images/betini-logo.png" alt="Betini Centro Automotivo">
-            </a>
-            <nav class="site-nav" aria-label="Navegacao principal">
-                <a href="/">Inicio</a>
-                <a href="/maintenance">Manutencao</a>
-                <a href="#avaliacoes">Avaliacoes</a>
-                <a href="#conteudos">Conteudos</a>
-                <a href="/portal">Portal</a>
-            </nav>
-        </header>
+        @include('partials.site-header')
 
         <main>
             <section class="site-hero" aria-label="Servicos automotivos">
@@ -60,7 +49,7 @@
                     <h2>As ultimas experiencias de quem passou pela Betini.</h2>
                 </div>
 
-                <div class="review-rail" aria-label="Avaliacoes de clientes">
+                <div class="review-rail" aria-label="Avaliacoes de clientes" data-google-reviews>
                     @foreach ([
                         ['name' => 'Marcos H.', 'text' => 'Atendimento claro, revisao feita dentro do prazo e explicaram tudo antes de executar.'],
                         ['name' => 'Priscila R.', 'text' => 'Gostei da organizacao. Recebi o orcamento e aprovei sem surpresa no final.'],
@@ -83,7 +72,7 @@
                     @endforeach
                 </div>
 
-                <p class="site-note">A integracao automatica com Google pode ser feita via Google Places API usando Place ID e chave da conta da empresa.</p>
+                <p class="site-note" data-review-note>Aguardando credenciais da Google Business Profile API para sincronizar automaticamente.</p>
             </section>
 
             <section class="site-section service-band">
@@ -119,10 +108,7 @@
             </section>
         </main>
 
-        <footer class="site-footer">
-            <span>Betini Centro Automotivo</span>
-            <a href="/maintenance#scheduling">Agendar atendimento</a>
-        </footer>
+        @include('partials.site-footer')
 
         <script>
             const slides = [...document.querySelectorAll('.site-hero__slide')];
@@ -137,6 +123,61 @@
 
             dots.forEach((dot) => dot.addEventListener('click', () => showSlide(Number(dot.dataset.slideDot))));
             window.setInterval(() => showSlide((activeSlide + 1) % slides.length), 5200);
+
+            const reviewsRail = document.querySelector('[data-google-reviews]');
+            const reviewNote = document.querySelector('[data-review-note]');
+
+            function starsForRating(rating) {
+                const normalizedRating = Math.max(0, Math.min(5, Number(rating || 0)));
+                return '★★★★★'.slice(0, normalizedRating).padEnd(5, '☆');
+            }
+
+            function renderGoogleReviews(reviews) {
+                reviewsRail.innerHTML = '';
+
+                reviews.forEach((review) => {
+                    const card = document.createElement('article');
+                    card.className = 'review-card';
+
+                    const header = document.createElement('div');
+                    const author = document.createElement('strong');
+                    const rating = document.createElement('span');
+                    const text = document.createElement('p');
+
+                    author.textContent = review.author || 'Cliente Google';
+                    rating.textContent = starsForRating(review.rating);
+                    text.textContent = review.comment;
+
+                    header.append(author, rating);
+                    card.append(header, text);
+                    reviewsRail.appendChild(card);
+                });
+            }
+
+            async function loadGoogleReviews() {
+                try {
+                    const response = await fetch('/api/landing/google-reviews', {
+                        headers: { Accept: 'application/json' },
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const payload = await response.json();
+
+                    if (!payload.synced || !payload.reviews?.length) {
+                        return;
+                    }
+
+                    renderGoogleReviews(payload.reviews);
+                    reviewNote.textContent = `Avaliacoes sincronizadas do Google: ${payload.totalReviewCount ?? payload.reviews.length} registros, nota media ${payload.averageRating ?? '-'}.`;
+                } catch (error) {
+                    // Mantem as avaliacoes estaticas como fallback visual da landing.
+                }
+            }
+
+            loadGoogleReviews();
         </script>
     </body>
 </html>
